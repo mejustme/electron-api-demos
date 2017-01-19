@@ -1,5 +1,7 @@
 // GUI-related modules (such as dialog, menu etc.) are only available in the main process
-// 可以通过 remote.xxx 来获取 只能在main progress 中执行的模块
+// 可以通过 remote.xxx 来获取,main 环境上下文才有的模块、方法 本质都是在main 中执行返回给render的，通信被黑盒
+// 只要可枚举类型才能被remote 访问，本质深度拷贝，故render 中修改对象，main中不变
+// http://electron.atom.io/docs/api/remote/
 // 相反的 我们可以通过 win.webContents.executeJavascript 在main progress 中运行 render 环境的代码
 
 const BrowserWindow = require('electron').remote.BrowserWindow
