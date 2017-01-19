@@ -1,3 +1,7 @@
+// GUI-related modules (such as dialog, menu etc.) are only available in the main process
+// 可以通过 remote.xxx 来获取 只能在main progress 中执行的模块
+// 相反的 我们可以通过 win.webContents.executeJavascript 在main progress 中运行 render 环境的代码
+
 const BrowserWindow = require('electron').remote.BrowserWindow
 const dialog = require('electron').remote.dialog
 
