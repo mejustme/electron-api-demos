@@ -1,6 +1,7 @@
 'use strict'
 
 const Application = require('spectron').Application
+const electron = require('electron')
 const chai = require('chai')
 const chaiAsPromised = require('chai-as-promised')
 const path = require('path')
@@ -16,16 +17,26 @@ describe('demo app', function () {
 
   let app
 
-  const removeStoredPreferences = function () {
+  const getUserDataPath = function () {
     const productName = require('../package').productName
-    const userDataPath = path.join(process.env.HOME, 'Library', 'Application Support', productName)
-    try {
-      fs.unlinkSync(path.join(userDataPath, 'activeDemoButtonId.json'))
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error
+    switch (process.platform) {
+      case 'darwin':
+        return path.join(process.env.HOME, 'Library', 'Application Support', productName)
+      case 'win32':
+        return path.join(process.env.APPDATA, productName)
+      case 'freebsd':
+      case 'linux':
+      case 'sunos':
+        return path.join(process.env.HOME, '.config', productName)
+      default:
+        throw new Error(`Unknown userDataPath path for platform ${process.platform}`)
     }
+  }
+
+  const removeStoredPreferences = function () {
+    const userDataPath = getUserDataPath()
     try {
-      fs.unlinkSync(path.join(userDataPath, 'activeSectionButtonId.json'))
+      fs.unlinkSync(path.join(userDataPath, 'Settings'))
     } catch (error) {
       if (error.code !== 'ENOENT') throw error
     }
@@ -80,7 +91,7 @@ describe('demo app', function () {
 
   const startApp = function () {
     app = new Application({
-      path: path.join(__dirname, '..', 'node_modules', '.bin', 'electron'),
+      path: electron,
       args: [
         path.join(__dirname, '..')
       ],
@@ -103,6 +114,14 @@ describe('demo app', function () {
     if (app && app.isRunning()) {
       return app.stop()
     }
+  })
+
+  it('checks hardcoded path for userData is correct', function () {
+    return app.client.execute(function () {
+      return require('electron').remote.app.getPath('userData')
+    }).then(function (result) {
+      return result.value
+    }).should.eventually.equal(getUserDataPath())
   })
 
   it('opens a window displaying the about page', function () {
@@ -136,7 +155,7 @@ describe('demo app', function () {
 
   describe('when a demo title is clicked', function () {
     it('it expands the demo content', function () {
-      let onlyFirstVisible = Array(28).fill(false)
+      let onlyFirstVisible = Array(30).fill(false)
       onlyFirstVisible[0] = true
 
       return app.client.dismissAboutPage()
@@ -150,7 +169,7 @@ describe('demo app', function () {
 
   describe('when the app is restarted after use', function () {
     it('it launches at last visted section & demo', function () {
-      let onlyFirstVisible = Array(28).fill(false)
+      let onlyFirstVisible = Array(30).fill(false)
       onlyFirstVisible[0] = true
 
       return app.client.waitForVisible('#windows-section')
@@ -170,6 +189,7 @@ describe('demo app', function () {
       .auditSectionAccessibility('menus')
       .auditSectionAccessibility('shortcuts')
       .auditSectionAccessibility('ex-links-file-manager')
+      .auditSectionAccessibility('notifications')
       .auditSectionAccessibility('dialogs')
       .auditSectionAccessibility('tray')
       .auditSectionAccessibility('ipc')
